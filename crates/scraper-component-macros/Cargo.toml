@@ -1,0 +1,23 @@
+[package]
+name = "scraper-component-macros"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+readme.workspace = true
+edition.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+darling = "0.20"
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1"
+tap = "1"
+anyhow = "1"
+itertools = "0"
+convert_case = "0.8"
+prettyplease = "0.2"
+syntect = "5.2"

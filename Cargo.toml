@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/Niedzwiedzw/scraper-component"
+categories = ["web", "craping"]
+readme = "README.md"
+edition = "2024"
+
+[workspace.dependencies]
+# core
+scraper = { version = "0.24" }
+
+# internal
+scraper-component.path = "crates/scraper-component"
+
+# external
+pretty_assertions = "1.4.1"
+tempfile = "3.23.0"
+test-log = { version = "0.2.18", default-features = false, features = [
+  "trace",
+] }
+tracing = { version = "0.1.41" }
