@@ -16,8 +16,8 @@ syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1"
 tap = "1"
-anyhow = "1"
-itertools = "0"
+anyhow.workspace = true
+itertools.workspace = true
 convert_case = "0.8"
 prettyplease = "0.2"
 syntect = "5.2"

@@ -8,3 +8,4 @@ readme.workspace = true
 edition.workspace = true
 
 [dependencies]
+scraper-component.workspace = true

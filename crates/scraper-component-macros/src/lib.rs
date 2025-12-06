@@ -1,24 +1,26 @@
 use {
-    anyhow::Context,
+    anyhow::{Context, Result},
     darling::FromDeriveInput,
     proc_macro::{self, TokenStream},
-    std::iter::empty,
+    quote::quote,
     syn::{DeriveInput, parse_macro_input},
     tap::{Pipe, Tap, TapFallible},
 };
 
+mod component;
+
 trait AnyhowExt<T> {
-    fn for_anyhow(self) -> anyhow::Result<T>;
+    fn for_anyhow(self) -> Result<T>;
 }
 
 impl<T> AnyhowExt<T> for darling::Result<T> {
-    fn for_anyhow(self) -> anyhow::Result<T> {
+    fn for_anyhow(self) -> Result<T> {
         self.map_err(|e| anyhow::anyhow!("DARLING:\n{e:?}"))
     }
 }
 
 // Struct to parse derive input attributes
-#[derive(FromDeriveInput, Clone)]
+#[derive(FromDeriveInput, Clone, Debug)]
 #[darling(attributes(component), supports(struct_any, enum_any))]
 struct ComponentInput {
     ident: syn::Ident,
@@ -51,17 +53,8 @@ pub fn component_macro(input: TokenStream) -> TokenStream {
             .map(|component| (input, component))
     })
     .context("parsing input")
-    .and_then(|(input, component_input)| todo!())
+    .and_then(|(input, component_input)| component::derive_component_impl(input, component_input))
     .with_context(|| format!("parsing:\n{input}"))
-    .and_then(|(((mutation, inspector), value), lens)| -> anyhow::Result<_> {
-        empty()
-            .chain(mutation)
-            .chain(inspector?)
-            .chain(value)
-            .chain(lens)
-            .collect::<proc_macro2::TokenStream>()
-            .pipe(Ok)
-    })
     .tap_ok_dbg(|ts| {
         #[cfg(debug_assertions)]
         {

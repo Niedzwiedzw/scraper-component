@@ -25,16 +25,3 @@ pub fn format_macro_output(tokens: &proc_macro2::TokenStream) -> String {
         .map(|parsed| prettyplease::unparse(&parsed))
         .unwrap_or_else(|reason| format!("// FAILED TO FORMAT: {reason:?}\n{tokens}"))
 }
-
-pub trait ResultZipExt<T, E> {
-    fn zip<U>(self, other: std::result::Result<U, E>) -> std::result::Result<(T, U), E>;
-}
-
-impl<T, E> ResultZipExt<T, E> for std::result::Result<T, E> {
-    fn zip<U>(self, other: std::result::Result<U, E>) -> std::result::Result<(T, U), E> {
-        match (self, other) {
-            (Ok(t), Ok(u)) => Ok((t, u)),
-            (Err(e), _) | (_, Err(e)) => Err(e),
-        }
-    }
-}

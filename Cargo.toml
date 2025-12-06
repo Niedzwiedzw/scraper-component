@@ -16,6 +16,7 @@ scraper = { version = "0.24" }
 
 # internal
 scraper-component.path = "crates/scraper-component"
+scraper-component-macros.path = "crates/scraper-component-macros"
 
 # external
 pretty_assertions = "1.4.1"
@@ -24,3 +25,6 @@ test-log = { version = "0.2.18", default-features = false, features = [
   "trace",
 ] }
 tracing = { version = "0.1.41" }
+anyhow = "1"
+itertools = "0"
+nonempty = "0.12.0"
