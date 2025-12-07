@@ -663,6 +663,7 @@ dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
+ "scraper",
  "syn",
  "syntect",
  "tap",
@@ -673,6 +674,7 @@ name = "scraper-component-macros-test"
 version = "0.1.0"
 dependencies = [
  "scraper-component",
+ "tap",
 ]
 
 [[package]]

@@ -9,3 +9,4 @@ edition.workspace = true
 
 [dependencies]
 scraper-component.workspace = true
+tap = "1.0.1"

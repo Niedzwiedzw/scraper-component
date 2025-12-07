@@ -30,6 +30,13 @@ macro_rules! impl_normal_collect {
     };
 }
 
+#[macro_export]
+macro_rules! sel {
+    ($selector:expr) => {
+        &::scraper_component::scraper::Selector::parse($selector).expect("parsing selector")
+    };
+}
+
 impl<T> TryCollectFrom<T> for Option<T> {
     fn try_collect<I>(from: I) -> Result<Self>
     where

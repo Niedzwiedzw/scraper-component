@@ -76,21 +76,19 @@ struct ComponentField {
 //     }
 // }
 
-
 pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct_name, generics }: ComponentInput) -> Result<proc_macro2::TokenStream> {
     match &input.data {
-        syn::Data::Struct(DataStruct { fields, .. }) => {
-            fields
-                .iter()
-                .map(|f| {
-                    ComponentField::from_field(f)
-                        .for_anyhow()
-                        .with_context(|| format!("parsing field: {f:?}"))
-                })
-                .collect::<Result<Vec<_>>>()
-                .context("collecting fields")
-                .map(|fields| {
-                    fields
+        syn::Data::Struct(DataStruct { fields, .. }) => fields
+            .iter()
+            .map(|f| {
+                ComponentField::from_field(f)
+                    .for_anyhow()
+                    .with_context(|| format!("parsing field: {f:?}"))
+            })
+            .collect::<Result<Vec<_>>>()
+            .context("collecting fields")
+            .map(|fields| {
+                fields
                     .iter()
                     .enumerate()
                     .map(|(idx, component_field @ ComponentField { ident, ty: _, selector: _ })| {
@@ -101,25 +99,32 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                             .pipe(|field_kind| (field_kind, component_field))
                     })
                     .map(|(kind, ComponentField { ident: _, ty: _, selector })| {
-                        
                         let selector_str = selector.to_string();
                         let field_name = kind.to_string();
                         let struct_name = struct_name.to_string();
-                        (kind.clone(), quote::quote! {
-                            let #kind = {
-                                use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector};
-                                Selector::parse(#selector)
-                                    .map_err(|e| anyhow!("{e:?}"))
-                                    .with_context(|| format!("invalid selector: '{}'", #selector_str))
-                                    .and_then(|sel| {
-                                        let out = ___element
-                                            .select(&sel)
-                                            .map(::scraper_component::TryFromElement::try_from_element);
-                                        <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(out)
-                                    })
-                                    .with_context(|| format!("reading {}::{}", #struct_name, #field_name))
-                            }?;
-                        })
+                        // VALIDATE AT COMPILE TIME
+                        let _selector = scraper::Selector::parse(selector)
+                            .map_err(|e| anyhow::anyhow!("{e:?}"))
+                            .with_context(|| format!("invalid selector for field '{field_name}': '{selector}'"))
+                            .unwrap();
+                                    
+
+
+                        (
+                            kind.clone(),
+                            quote::quote! {
+                                let #kind = {
+                                    use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector};
+                                    static SELECTOR: std::sync::LazyLock<::scraper_component::scraper::Selector> =
+                                        std::sync::LazyLock::new(|| ::scraper_component::scraper::Selector::parse(#selector).expect("validated at compile time"));
+                                    let selector = &*SELECTOR;
+                                    let select = ___element.select(selector);
+                                    let mapped = select.map(::scraper_component::TryFromElement::try_from_element);
+                                    <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                                        .with_context(|| format!("reading {}::{}", #struct_name, #field_name))
+                                }?;
+                            },
+                        )
                     })
                     .collect::<Vec<_>>()
                     .pipe(|fields| {
@@ -127,8 +132,12 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                         let (_impl_generics, type_generics, where_clause) = generics.split_for_impl();
                         let field_names = fields.iter().map(|(f, _)| f);
                         quote! {
-                            impl <'document> ::scraper_component::TryFromElement<'document> for #struct_name #type_generics #where_clause{
-                                fn try_from_element(___element: ::scraper_component::scraper::ElementRef<'document>) -> ::scraper_component::anyhow::Result<Self> {
+                            impl <'document> ::scraper_component::TryFromElement<'document> for #struct_name
+                            #type_generics
+                            #where_clause{
+                                fn try_from_element(___element: ::scraper_component::scraper::ElementRef<'document>)
+                                ->
+                                ::scraper_component::anyhow::Result<Self> {
                                     #(#field_impls)*
 
                                     Ok(Self {
@@ -138,8 +147,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                             }
                         }
                     })
-                })
-        }
+            }),
         syn::Data::Enum(_data_enum) => Err(anyhow!("enums not supported")),
         syn::Data::Union(_data_union) => Err(anyhow!("unions are not supported")),
     }
