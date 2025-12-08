@@ -194,8 +194,8 @@ attributes! {
     checked "checked",
     /// The `cite` attribute contains a URL that points to the source of the quotation or change.
     cite "cite",
-    // class is handled in ../class.rs instead
-    //class "class",
+    /// The `class` global attribute is a list of the classes of the element, separated by ASCII whitespace.
+    class "class",
     /// The `code` attribute specifies the URL of the applet's class file to be loaded and executed.
     code "code",
     /// The `color` attribute specifies the color of an element's text.
