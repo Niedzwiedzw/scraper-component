@@ -85,7 +85,5 @@ mod tests {
                 .flatten()
             }
         }
-
-        pub mod generated {}
     }
 }
