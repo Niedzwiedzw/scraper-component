@@ -3,11 +3,11 @@
 A Rust library providing a procedural macro (`#[derive(Component)]`) and helpers for declaratively parsing HTML elements using the `scraper` crate.
 
 ## Features
-- Define structs that map directly to HTML structures.
+- Define structs that map data directly from HTML structure.
 - Select elements with `#[component(selector = "...")]`.
 - Extract text, attributes, or nested components.
-- Support for fixed-size arrays, single values, optional/required attributes.
-- Selectors are checked at compile-time (during macro resolution) and are held as static references to avoid constant re-parsing
+- Support for fixed/variable-size arrays, nonempty lists, single values, optional/required attributes.
+- CSS selectors are checked at compile-time (during macro resolution) and are held as static references to avoid constant re-parsing
 
 
 ## Example
