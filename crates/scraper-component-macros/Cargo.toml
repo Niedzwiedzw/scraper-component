@@ -1,6 +1,6 @@
 [package]
 name = "scraper-component-macros"
-version = "--bump"
+version.workspace = true
 license.workspace = true
 repository.workspace = true
 categories.workspace = true
