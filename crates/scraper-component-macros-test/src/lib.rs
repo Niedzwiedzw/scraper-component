@@ -35,41 +35,57 @@ mod tests {
 <body>
     <div class="item">Hello</div>
     <div class="item">Hi</div>
-    <div class="item" id="something">Meow</div>
+    <div class="item" id="cat">Meow</div>
 </body>
 "#;
-            #[derive(Component, Debug, Clone)]
+            #[derive(Component, Debug, Clone, PartialEq)]
             struct OptionalIdChild {
+                #[component]
+                text: Single<String>,
+                // id is optional
                 #[component(map = "scraper_component::attribute::id_opt")]
                 id: Single<Option<String>>,
             }
-            #[derive(Component, Debug, Clone)]
-            struct RequiredIdChild {
-                #[component(map = "scraper_component::attribute::id")]
-                id: Single<String>,
-            }
 
-            #[derive(Component, Clone)]
+            #[derive(Component, Clone, PartialEq)]
             struct ExampleStruct {
+                ///  inlines entire text from matching elements
                 #[component(selector = "div.item")]
-                children: [String; 3],
+                children_simple: [String; 3],
+                /// parses nested component for more granular parsing
                 #[component(selector = "div.item")]
-                children_2: [OptionalIdChild; 3],
+                children_via_struct: [OptionalIdChild; 3],
             }
 
             #[test]
             fn test_parses() -> Result<()> {
                 super::super::parsed::<ExampleStruct, _>(HTML, |element| {
-                    let expected: &[_] = &[[None], [None], [Some("something".to_string())]];
                     anyhow::ensure!(
-                        element.children_2.clone().map(|c| c.id).eq(expected),
-                        "{expected:?} != {:?}",
-                        element.children_2
+                        element
+                            .children_simple
+                            .eq(&["Hello", "Hi", "Meow"].map(ToOwned::to_owned)),
                     );
+
+                    anyhow::ensure!(element.children_via_struct.clone().eq(&[
+                        OptionalIdChild {
+                            text: ["Hello".into()],
+                            id: [None]
+                        },
+                        OptionalIdChild {
+                            text: ["Hi".into()],
+                            id: [None]
+                        },
+                        OptionalIdChild {
+                            text: ["Meow".into()],
+                            id: [Some("cat".into())]
+                        },
+                    ]),);
                     Ok(())
                 })
                 .flatten()
             }
         }
+
+        pub mod generated {}
     }
 }
