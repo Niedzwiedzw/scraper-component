@@ -12,6 +12,17 @@ macro_rules! attributes {
                 }
 
                 #[$meta]
+                pub fn [<$key _static>]<const VALUE: &'static str> (el: ElementRef<'_>) -> Result<crate::Hardcoded<VALUE>>
+
+                {
+                    self::attr(el, $html).and_then(|value| match value == VALUE {
+                        true => Ok(crate::Hardcoded),
+                        false => Err(anyhow::anyhow!("expected {VALUE}, found {value}"))
+                    })
+                    .with_context(|| format!("when validating hardcoded {}", stringify!($key)))
+                }
+
+                #[$meta]
                 pub fn $key (el: ElementRef<'_>) -> Result<String>
 
                 {

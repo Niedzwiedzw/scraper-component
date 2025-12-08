@@ -1,5 +1,8 @@
+#![allow(incomplete_features)]
 #![feature(array_try_from_fn)]
 #![feature(array_try_map)]
+#![feature(adt_const_params)]
+#![feature(unsized_const_params)]
 
 pub use {anyhow, nonempty::NonEmpty, scraper, scraper_component_macros::Component};
 use {
@@ -96,6 +99,20 @@ impl<'document> TryFromElement<'document> for scraper::ElementRef<'document> {
 impl<'document> TryFromElement<'document> for String {
     fn try_from_element(element: scraper::ElementRef<'document>) -> Result<Self> {
         Ok(element.text().join(""))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Hardcoded<const VALUE: &'static str>;
+
+impl<'document, const VALUE: &'static str> TryFromElement<'document> for Hardcoded<VALUE> {
+    fn try_from_element(element: scraper::ElementRef<'document>) -> Result<Self> {
+        let text = element.text().join("");
+        if text.trim() == VALUE {
+            Ok(Self)
+        } else {
+            Err(anyhow::anyhow!("expected {VALUE}, found {text}"))
+        }
     }
 }
 
