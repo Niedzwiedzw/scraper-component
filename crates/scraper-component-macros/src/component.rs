@@ -162,7 +162,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                         }).unwrap_or_else(|| Box::new(std::iter::once(___element)));
                                         let mapped = select.map(#map);
                                         <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                                            .with_context(|| format!("reading {}::{}", #struct_name, #field_name))
+                                            .with_context(|| format!("reading {}::{} from:\n{}", #struct_name, #field_name, ___element.html()))
                                     }?;
                                 },
                             )
