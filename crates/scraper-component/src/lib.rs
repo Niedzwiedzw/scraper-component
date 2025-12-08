@@ -76,6 +76,13 @@ impl<const SIZE: usize, T> TryCollectFrom<T> for [T; SIZE] {
     }
 }
 
+pub fn try_from_element<'document, T>(element: scraper::ElementRef<'document>) -> Result<T>
+where
+    T: TryFromElement<'document> + Sized + 'document,
+{
+    T::try_from_element(element)
+}
+
 pub trait TryFromElement<'document>: Sized + 'document {
     fn try_from_element(element: scraper::ElementRef<'document>) -> Result<Self>;
 }
@@ -109,3 +116,5 @@ where
             .map(Parsed)
     }
 }
+
+pub mod attribute;

@@ -3,7 +3,7 @@ use {
     crate::component::struct_field_kind::StructFieldKind,
     anyhow::{Result, anyhow},
     darling::FromField,
-    syn::DataStruct,
+    syn::{DataStruct, Path},
 };
 
 mod struct_field_kind {
@@ -41,6 +41,10 @@ mod struct_field_kind {
     }
 }
 
+fn default_map_path() -> syn::Path {
+    syn::parse_quote!(::scraper_component::try_from_element)
+}
+
 /// Struct to parse field attributes
 #[derive(FromField, Debug)]
 #[darling(attributes(component))]
@@ -48,7 +52,10 @@ struct ComponentField {
     ident: Option<syn::Ident>,
     #[allow(dead_code)]
     ty: syn::Type,
-    selector: String,
+    #[darling(default)]
+    selector: Option<String>,
+    #[darling(default = "default_map_path")]
+    map: Path,
     // Field name
     // #[darling(default)]
     // skip: bool, // #[bimber(skip)] to skip fields
@@ -91,41 +98,76 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                 fields
                     .iter()
                     .enumerate()
-                    .map(|(idx, component_field @ ComponentField { ident, ty: _, selector: _ })| {
-                        ident
-                            .as_ref()
-                            .map(|i| StructFieldKind::Named(i.clone()))
-                            .unwrap_or(StructFieldKind::index(&input.ident, idx))
-                            .pipe(|field_kind| (field_kind, component_field))
-                    })
-                    .map(|(kind, ComponentField { ident: _, ty: _, selector })| {
-                        let selector_str = selector.to_string();
-                        let field_name = kind.to_string();
-                        let struct_name = struct_name.to_string();
-                        // VALIDATE AT COMPILE TIME
-                        let _selector = scraper::Selector::parse(selector)
-                            .map_err(|e| anyhow::anyhow!("{e:?}"))
-                            .with_context(|| format!("invalid selector for field '{field_name}': '{selector}'"))
-                            .unwrap();
-                                    
-
-
-                        (
-                            kind.clone(),
-                            quote::quote! {
-                                let #kind = {
-                                    use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector};
-                                    static SELECTOR: std::sync::LazyLock<::scraper_component::scraper::Selector> =
-                                        std::sync::LazyLock::new(|| ::scraper_component::scraper::Selector::parse(#selector).expect("validated at compile time"));
-                                    let selector = &*SELECTOR;
-                                    let select = ___element.select(selector);
-                                    let mapped = select.map(::scraper_component::TryFromElement::try_from_element);
-                                    <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                                        .with_context(|| format!("reading {}::{}", #struct_name, #field_name))
-                                }?;
+                    .map(
+                        |(
+                            idx,
+                            component_field @ ComponentField {
+                                ident,
+                                ty: _,
+                                selector: _,
+                                map: _,
                             },
-                        )
-                    })
+                        )| {
+                            ident
+                                .as_ref()
+                                .map(|i| StructFieldKind::Named(i.clone()))
+                                .unwrap_or(StructFieldKind::index(&input.ident, idx))
+                                .pipe(|field_kind| (field_kind, component_field))
+                        },
+                    )
+                    .map(
+                        |(
+                            kind,
+                            ComponentField {
+                                ident: _,
+                                ty: _,
+                                selector,
+                                map,
+                            },
+                        )| {
+                            let selector = selector.as_ref();
+
+                            let selector_str = selector.map(|s| s.to_string());
+                            let field_name = kind.to_string();
+                            let struct_name = struct_name.to_string();
+                            // VALIDATE AT COMPILE TIME
+                            let _selector = selector
+                                .map(|selector| scraper::Selector::parse(selector))
+                                .transpose()
+                                .map_err(|e| anyhow::anyhow!("{e:?}"))
+                                .with_context(|| format!("invalid selector for field '{field_name}': '{selector:?}'"))
+                                .unwrap();
+
+                            let define_selector = match selector {
+                                Some(selector) => {
+                                    quote! {
+                                        Some(::scraper_component::scraper::Selector::parse(#selector).expect("validated at compile time"))
+                                    }
+                                }
+                                None => quote! {
+                                    None
+                                },
+                            };
+
+                            (
+                                kind.clone(),
+                                quote::quote! {
+                                    let #kind = {
+                                        use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector};
+                                        static SELECTOR: std::sync::LazyLock<Option<::scraper_component::scraper::Selector>> =
+                                            std::sync::LazyLock::new(|| #define_selector);
+                                        let selector = &*SELECTOR;
+                                        let select = selector.as_ref().map(|selector| {
+                                            (Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                                        }).unwrap_or_else(|| Box::new(std::iter::once(___element)));
+                                        let mapped = select.map(#map);
+                                        <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                                            .with_context(|| format!("reading {}::{}", #struct_name, #field_name))
+                                    }?;
+                                },
+                            )
+                        },
+                    )
                     .collect::<Vec<_>>()
                     .pipe(|fields| {
                         let field_impls = fields.iter().map(|(_, f)| f);
@@ -136,7 +178,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                             #type_generics
                             #where_clause{
                                 fn try_from_element(___element: ::scraper_component::scraper::ElementRef<'document>)
-                                ->
+                                    ->
                                 ::scraper_component::anyhow::Result<Self> {
                                     #(#field_impls)*
 
