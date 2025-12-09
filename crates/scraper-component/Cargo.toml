@@ -1,7 +1,11 @@
 [package]
 name = "scraper-component"
 version.workspace = true
-edition = "2024"
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
