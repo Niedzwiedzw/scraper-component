@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+#[allow(dead_code)]
 pub fn syntax_highlighting(input: String) -> String {
     use syntect::{highlighting::ThemeSet, parsing::SyntaxSet, util::as_24_bit_terminal_escaped};
     let ss = SyntaxSet::load_defaults_newlines();
@@ -20,6 +21,7 @@ pub fn syntax_highlighting(input: String) -> String {
         .join("\n")
 }
 
+#[allow(dead_code)]
 pub fn format_macro_output(tokens: &proc_macro2::TokenStream) -> String {
     syn::parse2::<syn::File>(tokens.clone())
         .map(|parsed| prettyplease::unparse(&parsed))

@@ -7,6 +7,10 @@ categories.workspace = true
 readme.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+macro-debug = ["scraper-component-macros/macro-debug"]
+
 [dependencies]
 anyhow.workspace = true
 derive_more = { version = "2.1.0", features = ["full"] }

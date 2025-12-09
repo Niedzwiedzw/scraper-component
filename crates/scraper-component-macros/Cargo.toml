@@ -7,6 +7,10 @@ categories.workspace = true
 readme.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+macro-debug = []
+
 [lib]
 proc-macro = true
 
