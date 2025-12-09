@@ -171,15 +171,18 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                 quote::quote! {
                                     let #kind = {
                                         use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector};
-                                        static SELECTOR: std::sync::LazyLock<Option<::scraper_component::scraper::Selector>> =
-                                            std::sync::LazyLock::new(|| #define_selector);
-                                        let selector = &*SELECTOR;
-                                        let select = selector.as_ref().map(|selector| {
-                                            (Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                                        thread_local! {
+                                            static SELECTOR: Option<::scraper_component::scraper::Selector> =
+                                                #define_selector;    
+                                        }
+                                        SELECTOR.with(|selector| {
+                                            let select = selector.as_ref().map(|selector| {
+                                                (Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                                            })
+                                            .unwrap_or_else(|| Box::new(std::iter::once(___element)));
+                                            let mapped = select.map(#map);
+                                            #perform_parse    
                                         })
-                                        .unwrap_or_else(|| Box::new(std::iter::once(___element)));
-                                        let mapped = select.map(#map);
-                                        #perform_parse
                                     }?;
                                 },
                             )
