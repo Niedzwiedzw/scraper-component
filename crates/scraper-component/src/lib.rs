@@ -12,7 +12,7 @@ use {
 };
 
 /// Exactly one element
-pub type Single<T> = [T; 1];
+type Single<T> = [T; 1];
 
 pub trait TryCollectFrom<T>: Sized {
     fn try_collect<I>(from: I) -> Result<Self>
@@ -131,6 +131,18 @@ where
             .parse::<T>()
             .with_context(|| format!("could not parse into [{}]", std::any::type_name::<Self>()))
             .map(Parsed)
+    }
+}
+
+impl<'document, T> TryCollectFrom<T> for T
+where
+    T: TryFromElement<'document>,
+{
+    fn try_collect<I>(from: I) -> Result<Self>
+    where
+        I: Iterator<Item = Result<T>>,
+    {
+        <Single<Self> as TryCollectFrom<T>>::try_collect(from).map(|[elem]| elem)
     }
 }
 

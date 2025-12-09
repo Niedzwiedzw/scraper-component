@@ -21,7 +21,7 @@ impl<T> AnyhowExt<T> for darling::Result<T> {
 
 // Struct to parse derive input attributes
 #[derive(FromDeriveInput, Clone, Debug)]
-#[darling(attributes(component), supports(struct_any, enum_any))]
+#[darling(attributes(component), supports(struct_named))]
 struct ComponentInput {
     ident: syn::Ident,
     generics: syn::Generics,
@@ -71,4 +71,5 @@ pub fn component_macro(input: TokenStream) -> TokenStream {
     .map(TokenStream::from)
     .unwrap_or_else(|e| panic!("scraper-component proc macro failed\nreason\n{e:?}"))
 }
+
 mod utils;

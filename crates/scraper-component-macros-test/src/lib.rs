@@ -23,10 +23,7 @@ mod tests {
         pub mod three_texts {
             use {
                 super::*,
-                scraper_component::{
-                    Single,
-                    anyhow::{self, Result},
-                },
+                scraper_component::anyhow::{self, Result},
             };
 
             #[rustfmt::skip]
@@ -41,19 +38,19 @@ mod tests {
             #[derive(Component, Debug, Clone, PartialEq)]
             struct OptionalIdChild {
                 #[component]
-                text: Single<String>,
+                text: String,
                 // id is optional
                 #[component(map = "scraper_component::attribute::id_opt")]
-                id: Single<Option<String>>,
+                id: Option<String>,
             }
 
             #[derive(Component, Clone, PartialEq)]
             struct ExampleStruct {
                 ///  inlines entire text from matching elements
-                #[component(selector = "div.item")]
+                #[component(selector = "div.item", many)]
                 children_simple: [String; 3],
                 /// parses nested component for more granular parsing
-                #[component(selector = "div.item")]
+                #[component(selector = "div.item", many)]
                 children_via_struct: [OptionalIdChild; 3],
             }
 
@@ -68,16 +65,13 @@ mod tests {
 
                     anyhow::ensure!(element.children_via_struct.clone().eq(&[
                         OptionalIdChild {
-                            text: ["Hello".into()],
-                            id: [None]
+                            text: "Hello".into(),
+                            id: None
                         },
+                        OptionalIdChild { text: "Hi".into(), id: None },
                         OptionalIdChild {
-                            text: ["Hi".into()],
-                            id: [None]
-                        },
-                        OptionalIdChild {
-                            text: ["Meow".into()],
-                            id: [Some("cat".into())]
+                            text: "Meow".into(),
+                            id: Some("cat".into())
                         },
                     ]),);
                     Ok(())

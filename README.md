@@ -15,10 +15,7 @@ A Rust library providing a procedural macro (`#[derive(Component)]`) and helpers
 pub mod three_texts {
     use {
         super::*,
-        scraper_component::{
-            Single,
-            anyhow::{self, Result},
-        },
+        scraper_component::anyhow::{self, Result},
     };
 
     #[rustfmt::skip]
@@ -33,19 +30,19 @@ pub mod three_texts {
     #[derive(Component, Debug, Clone, PartialEq)]
     struct OptionalIdChild {
         #[component]
-        text: Single<String>,
+        text: String,
         // id is optional
         #[component(map = "scraper_component::attribute::id_opt")]
-        id: Single<Option<String>>,
+        id: Option<String>,
     }
 
     #[derive(Component, Clone, PartialEq)]
     struct ExampleStruct {
         ///  inlines entire text from matching elements
-        #[component(selector = "div.item")]
+        #[component(selector = "div.item", many)]
         children_simple: [String; 3],
         /// parses nested component for more granular parsing
-        #[component(selector = "div.item")]
+        #[component(selector = "div.item", many)]
         children_via_struct: [OptionalIdChild; 3],
     }
 
@@ -60,16 +57,13 @@ pub mod three_texts {
 
             anyhow::ensure!(element.children_via_struct.clone().eq(&[
                 OptionalIdChild {
-                    text: ["Hello".into()],
-                    id: [None]
+                    text: "Hello".into(),
+                    id: None
                 },
+                OptionalIdChild { text: "Hi".into(), id: None },
                 OptionalIdChild {
-                    text: ["Hi".into()],
-                    id: [None]
-                },
-                OptionalIdChild {
-                    text: ["Meow".into()],
-                    id: [Some("cat".into())]
+                    text: "Meow".into(),
+                    id: Some("cat".into())
                 },
             ]),);
             Ok(())
@@ -82,42 +76,67 @@ pub mod three_texts {
 generates following code (cleaned up for readability):
 ```rust
 pub mod three_texts_generated {
-    use {
-        ::scraper_component::{
-            anyhow::Result,
-            scraper::{ElementRef, Selector},
-        },
-        scraper_component::{Single, anyhow::Context},
-        std::sync::LazyLock,
-    };
-
     struct OptionalIdChild {
-        text: Single<String>,
-        id: Single<Option<String>>,
+        text: String,
+        id: Option<String>,
     }
     impl<'document> ::scraper_component::TryFromElement<'document> for OptionalIdChild {
-        fn try_from_element(___element: ElementRef<'document>) -> Result<Self> {
-            use ::scraper_component::anyhow::Context;
+        fn try_from_element(
+            ___element: ::scraper_component::scraper::ElementRef<'document>,
+        ) -> ::scraper_component::anyhow::Result<Self> {
             let text = {
-                static SELECTOR: LazyLock<Option<Selector>> = LazyLock::new(|| None);
+                use ::scraper_component::{
+                    anyhow::{Result, Context, anyhow},
+                    scraper::Selector,
+                };
+                static SELECTOR: std::sync::LazyLock<
+                    Option<::scraper_component::scraper::Selector>,
+                > = std::sync::LazyLock::new(|| None);
                 let selector = &*SELECTOR;
                 let select = selector
                     .as_ref()
-                    .map(|selector| Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                    .map(|selector| {
+                        (Box::new(___element.select(selector))
+                            as Box<dyn Iterator<Item = _>>)
+                    })
                     .unwrap_or_else(|| Box::new(std::iter::once(___element)));
                 let mapped = select.map(::scraper_component::try_from_element);
-                <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped).with_context(|| format!("reading {}::{}", "OptionalIdChild", "text"))
+                <[String; 1] as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                    .with_context(|| {
+                        format!(
+                            "reading {}::{} (selector: {}) from:\n{}", "OptionalIdChild",
+                            "text", "<no-selector>", ___element.html()
+                        )
+                    })
+                    .map(|[v]| v)
             }?;
-
             let id = {
-                static SELECTOR: LazyLock<Option<Selector>> = LazyLock::new(|| None);
+                use ::scraper_component::{
+                    anyhow::{Result, Context, anyhow},
+                    scraper::Selector,
+                };
+                static SELECTOR: std::sync::LazyLock<
+                    Option<::scraper_component::scraper::Selector>,
+                > = std::sync::LazyLock::new(|| None);
                 let selector = &*SELECTOR;
                 let select = selector
                     .as_ref()
-                    .map(|selector| Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                    .map(|selector| {
+                        (Box::new(___element.select(selector))
+                            as Box<dyn Iterator<Item = _>>)
+                    })
                     .unwrap_or_else(|| Box::new(std::iter::once(___element)));
                 let mapped = select.map(scraper_component::attribute::id_opt);
-                <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped).with_context(|| format!("reading {}::{}", "OptionalIdChild", "id"))
+                <[Option<
+                    String,
+                >; 1] as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                    .with_context(|| {
+                        format!(
+                            "reading {}::{} (selector: {}) from:\n{}", "OptionalIdChild",
+                            "id", "<no-selector>", ___element.html()
+                        )
+                    })
+                    .map(|[v]| v)
             }?;
             Ok(Self { text, id })
         }
@@ -129,28 +148,66 @@ pub mod three_texts_generated {
         children_via_struct: [OptionalIdChild; 3],
     }
     impl<'document> ::scraper_component::TryFromElement<'document> for ExampleStruct {
-        fn try_from_element(___element: ElementRef<'document>) -> Result<Self> {
+        fn try_from_element(
+            ___element: ::scraper_component::scraper::ElementRef<'document>,
+        ) -> ::scraper_component::anyhow::Result<Self> {
             let children_simple = {
-                static SELECTOR: LazyLock<Option<Selector>> = LazyLock::new(|| Some(Selector::parse("div.item").expect("validated at compile time")));
+                use ::scraper_component::{
+                    anyhow::{Result, Context, anyhow},
+                    scraper::Selector,
+                };
+                static SELECTOR: std::sync::LazyLock<
+                    Option<::scraper_component::scraper::Selector>,
+                > = std::sync::LazyLock::new(|| Some(
+                    ::scraper_component::scraper::Selector::parse("div.item")
+                        .expect("validated at compile time"),
+                ));
                 let selector = &*SELECTOR;
                 let select = selector
                     .as_ref()
-                    .map(|selector| Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                    .map(|selector| {
+                        (Box::new(___element.select(selector))
+                            as Box<dyn Iterator<Item = _>>)
+                    })
                     .unwrap_or_else(|| Box::new(std::iter::once(___element)));
                 let mapped = select.map(::scraper_component::try_from_element);
-                <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                    .with_context(|| format!("reading {}::{}", "ExampleStruct", "children_simple"))
+                <[String; 3] as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                    .with_context(|| {
+                        format!(
+                            "reading {}::{} (selector: {}) from:\n{}", "ExampleStruct",
+                            "children_simple", "div.item", ___element.html()
+                        )
+                    })
             }?;
             let children_via_struct = {
-                static SELECTOR: LazyLock<Option<Selector>> = LazyLock::new(|| Some(Selector::parse("div.item").expect("validated at compile time")));
+                use ::scraper_component::{
+                    anyhow::{Result, Context, anyhow},
+                    scraper::Selector,
+                };
+                static SELECTOR: std::sync::LazyLock<
+                    Option<::scraper_component::scraper::Selector>,
+                > = std::sync::LazyLock::new(|| Some(
+                    ::scraper_component::scraper::Selector::parse("div.item")
+                        .expect("validated at compile time"),
+                ));
                 let selector = &*SELECTOR;
                 let select = selector
                     .as_ref()
-                    .map(|selector| Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                    .map(|selector| {
+                        (Box::new(___element.select(selector))
+                            as Box<dyn Iterator<Item = _>>)
+                    })
                     .unwrap_or_else(|| Box::new(std::iter::once(___element)));
                 let mapped = select.map(::scraper_component::try_from_element);
-                <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                    .with_context(|| format!("reading {}::{}", "ExampleStruct", "children_via_struct"))
+                <[OptionalIdChild; 3] as ::scraper_component::TryCollectFrom<
+                    _,
+                >>::try_collect(mapped)
+                    .with_context(|| {
+                        format!(
+                            "reading {}::{} (selector: {}) from:\n{}", "ExampleStruct",
+                            "children_via_struct", "div.item", ___element.html()
+                        )
+                    })
             }?;
             Ok(Self {
                 children_simple,

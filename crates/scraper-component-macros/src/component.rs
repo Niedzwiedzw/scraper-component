@@ -56,6 +56,8 @@ struct ComponentField {
     selector: Option<String>,
     #[darling(default = "default_map_path")]
     map: Path,
+    #[darling(default)]
+    many: bool
     // Field name
     // #[darling(default)]
     // skip: bool, // #[bimber(skip)] to skip fields
@@ -106,6 +108,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                 ty: _,
                                 selector: _,
                                 map: _,
+                                many: _
                             },
                         )| {
                             ident
@@ -120,9 +123,10 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                             kind,
                             ComponentField {
                                 ident: _,
-                                ty: _,
+                                ty,
                                 selector,
                                 map,
+                                many
                             },
                         )| {
                             let selector = selector.as_ref();
@@ -148,7 +152,20 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                     None
                                 },
                             };
+                            let selector_str = selector_str.unwrap_or_else(|| "<no-selector>".into());
 
+                            let perform_parse = match many {
+                                true => quote! {
+                                    <#ty as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                                        .with_context(|| format!("reading {}::{} (selector: {}) from:\n{}", #struct_name, #field_name, #selector_str, ___element.html()))
+                                    
+                                },
+                                false => quote! {
+                                    <[#ty; 1] as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
+                                        .with_context(|| format!("reading {}::{} (selector: {}) from:\n{}", #struct_name, #field_name, #selector_str, ___element.html()))
+                                        .map(|[v]| v)
+                                },
+                            };
                             (
                                 kind.clone(),
                                 quote::quote! {
@@ -159,10 +176,10 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                         let selector = &*SELECTOR;
                                         let select = selector.as_ref().map(|selector| {
                                             (Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
-                                        }).unwrap_or_else(|| Box::new(std::iter::once(___element)));
+                                        })
+                                        .unwrap_or_else(|| Box::new(std::iter::once(___element)));
                                         let mapped = select.map(#map);
-                                        <_ as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                                            .with_context(|| format!("reading {}::{} from:\n{}", #struct_name, #field_name, ___element.html()))
+                                        #perform_parse
                                     }?;
                                 },
                             )
