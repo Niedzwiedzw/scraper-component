@@ -152,7 +152,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                     None
                                 },
                             };
-                            let selector_str = selector_str.unwrap_or_else(|| "<no-selector>".into());
+                            let selector_str = selector_str.unwrap_or_else(|| "(no-selector)".into());
 
                             let perform_parse = match many {
                                 true => quote! {
