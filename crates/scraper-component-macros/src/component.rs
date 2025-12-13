@@ -157,12 +157,12 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                             let perform_parse = match many {
                                 true => quote! {
                                     <#ty as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                                        .with_context(|| format!("reading {}::{} (selector: {}) from:\n{}", #struct_name, #field_name, #selector_str, ___element.html()))
+                                        .with_context(|| format!("{}\n\nreading {}::{} (selector: {})", ___element.html(), #struct_name, #field_name, #selector_str))
                                     
                                 },
                                 false => quote! {
                                     <[#ty; 1] as ::scraper_component::TryCollectFrom<_>>::try_collect(mapped)
-                                        .with_context(|| format!("reading {}::{} (selector: {}) from:\n{}", #struct_name, #field_name, #selector_str, ___element.html()))
+                                        .with_context(|| format!("{}\n\nreading {}::{} (selector: {})", ___element.html(), #struct_name, #field_name, #selector_str))
                                         .map(|[v]| v)
                                 },
                             };
