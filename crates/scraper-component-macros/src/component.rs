@@ -45,6 +45,10 @@ fn default_map_path() -> syn::Path {
     syn::parse_quote!(::scraper_component::try_from_element)
 }
 
+fn default_filter_map_path() -> syn::Path {
+    syn::parse_quote!(::scraper_component::try_from_element)
+}
+
 /// Struct to parse field attributes
 #[derive(FromField, Debug)]
 #[darling(attributes(component))]
@@ -54,8 +58,8 @@ struct ComponentField {
     ty: syn::Type,
     #[darling(default)]
     selector: Option<String>,
-    #[darling(default = "default_map_path")]
-    map: Path,
+    map: Option<Path>,
+    filter_map: Option<Path>,
     #[darling(default)]
     many: bool
     // Field name
@@ -108,6 +112,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                 ty: _,
                                 selector: _,
                                 map: _,
+                                filter_map: _,
                                 many: _
                             },
                         )| {
@@ -126,6 +131,7 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                                 ty,
                                 selector,
                                 map,
+                                filter_map,
                                 many
                             },
                         )| {
@@ -168,22 +174,39 @@ pub fn derive_component_impl(input: &DeriveInput, ComponentInput { ident: struct
                             };
                             (
                                 kind.clone(),
-                                quote::quote! {
-                                    let #kind = {
-                                        use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector};
-                                        thread_local! {
-                                            static SELECTOR: Option<::scraper_component::scraper::Selector> =
-                                                #define_selector;    
-                                        }
-                                        SELECTOR.with(|selector| {
-                                            let select = selector.as_ref().map(|selector| {
-                                                (Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                                {
+                                    let apply = match (map, filter_map) {
+                                        (Some(_), Some(_)) => panic!("map and filter_map cannot be both specified"),
+                                        (None, None) => quote! {
+                                            let mapped = select.map(::scraper_component::try_from_element);
+                                        },
+                                        (None, Some(filter_map)) => quote! {
+                                            let mapped = select.filter_map(|e| (#filter_map)(e)).map(Ok);
+                                        },
+                                        (Some(map), None) => quote! {
+                                            let mapped = select.map(|e| Ok((#map)(e)));
+                                        },
+                                    };
+
+                                    quote::quote! {
+                                        let #kind = {
+                                            use ::scraper_component::{anyhow::{Result, Context, anyhow}, scraper::Selector, itertools::Itertools};
+                                            thread_local! {
+                                                static SELECTOR: Option<::scraper_component::scraper::Selector> =
+                                                    #define_selector;    
+                                            }
+                                            SELECTOR.with(|selector| {
+                                                let select = selector.as_ref().map(|selector| {
+                                                    (Box::new(___element.select(selector)) as Box<dyn Iterator<Item = _>>)
+                                                })
+                                                .unwrap_or_else(|| Box::new(std::iter::once(___element)));
+                                                
+                                                
+                                                #apply
+                                                #perform_parse    
                                             })
-                                            .unwrap_or_else(|| Box::new(std::iter::once(___element)));
-                                            let mapped = select.map(#map);
-                                            #perform_parse    
-                                        })
-                                    }?;
+                                        }?;
+                                    }
                                 },
                             )
                         },

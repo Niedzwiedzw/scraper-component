@@ -40,7 +40,7 @@ mod tests {
                 #[component]
                 text: String,
                 // id is optional
-                #[component(map = "scraper_component::attribute::id_opt")]
+                #[component(map = "::scraper_component::attribute::id")]
                 id: Option<String>,
             }
 

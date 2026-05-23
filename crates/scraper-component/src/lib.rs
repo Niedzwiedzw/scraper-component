@@ -4,7 +4,7 @@
 #![feature(adt_const_params)]
 #![feature(unsized_const_params)]
 
-pub use {anyhow, nonempty::NonEmpty, scraper, scraper_component_macros::Component};
+pub use {anyhow, itertools, nonempty::NonEmpty, scraper, scraper_component_macros::Component};
 use {
     anyhow::{Context, Result},
     itertools::Itertools,

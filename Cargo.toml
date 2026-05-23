@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.4.2"
+version = "0.5.0"
 license = "MIT"
 repository = "https://github.com/Niedzwiedzw/scraper-component"
 categories = ["web", "craping"]
@@ -12,7 +12,7 @@ edition = "2024"
 
 [workspace.dependencies]
 # core
-scraper = { version = "0.24" }
+scraper = { version = "0.27" }
 
 # internal
 scraper-component.path = "crates/scraper-component"

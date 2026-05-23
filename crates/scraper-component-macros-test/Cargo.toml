@@ -8,5 +8,7 @@ readme.workspace = true
 edition.workspace = true
 
 [dependencies]
-scraper-component.workspace = true
+scraper-component = { path = "../scraper-component", features = [
+  "macro-debug",
+] }
 tap = "1.0.1"

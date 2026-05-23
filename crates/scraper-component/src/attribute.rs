@@ -1,21 +1,14 @@
-use {anyhow::{Context, Result}, scraper::ElementRef};
+use {anyhow::{Context}, scraper::ElementRef};
 
 macro_rules! attributes {
 	($(#[$meta:meta] $key:ident $html:literal),* $(,)?) => {
         paste::paste! {
             $(
                 #[$meta]
-                pub fn [<$key _opt>] (el: ElementRef<'_>) -> Result<Option<String>>
+                pub fn [<$key _static>]<const VALUE: &'static str> (el: ElementRef<'_>) -> anyhow::Result<crate::Hardcoded<VALUE>>
 
                 {
-                    self::attr_opt(el, $html)
-                }
-
-                #[$meta]
-                pub fn [<$key _static>]<const VALUE: &'static str> (el: ElementRef<'_>) -> Result<crate::Hardcoded<VALUE>>
-
-                {
-                    self::attr(el, $html).and_then(|value| match value == VALUE {
+                    self::attr(el, $html).with_context(|| format!("no attribute {}", stringify!($key))).and_then(|value| match value == VALUE {
                         true => Ok(crate::Hardcoded),
                         false => Err(anyhow::anyhow!("expected {VALUE}, found {value}"))
                     })
@@ -23,7 +16,7 @@ macro_rules! attributes {
                 }
 
                 #[$meta]
-                pub fn $key (el: ElementRef<'_>) -> Result<String>
+                pub fn $key (el: ElementRef<'_>) -> Option<String>
 
                 {
                     self::attr(el, $html)
@@ -33,12 +26,9 @@ macro_rules! attributes {
     }
 }
 
-pub fn attr_opt(el: ElementRef<'_>, name: &str) -> Result<Option<String>> {
-    Ok(el.attr(name).map(ToOwned::to_owned))
-}
 
-pub fn attr(el: ElementRef<'_>, name: &str) -> Result<String> {
-    el.attr(name).with_context(|| format!("no attribute {name} on:\n{el}", el=el.html())).map(ToOwned::to_owned)
+pub fn attr(el: ElementRef<'_>, name: &str) -> Option<String> {
+    el.attr(name).map(ToOwned::to_owned)
 }
 
 attributes! {
