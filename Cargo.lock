@@ -603,7 +603,7 @@ dependencies = [
 
 [[package]]
 name = "scraper-component"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "derive_more",
@@ -616,7 +616,7 @@ dependencies = [
 
 [[package]]
 name = "scraper-component-macros"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "convert_case 0.8.0",
@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "scraper-component-macros-test"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "scraper-component",
  "tap",
